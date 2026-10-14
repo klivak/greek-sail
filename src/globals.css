@@ -1,0 +1,538 @@
+@import "tailwindcss";
+@import "lenis/dist/lenis.css";
+
+/*
+ * Design tokens. Plain hex colours on purpose: tests/unit/contrast.test.ts parses this file and checks every documented text pair against WCAG AA.
+ * Font families are loaded from Google Fonts in index.html.
+ */
+@theme {
+  /* Colours: background layers, foreground levels, one cool accent. */
+  --color-bg: #0b0b0c;
+  --color-bg-raised: #151517;
+  --color-bg-sunken: #060607;
+  --color-fg: #ededee;
+  --color-fg-muted: #a6a6ad;
+  --color-fg-subtle: #8b8b93;
+  --color-accent: #7cc4ff;
+  --color-accent-strong: #a8d8ff;
+  --color-on-accent: #07121c;
+  --color-border: #2a2a2f;
+  --color-border-strong: #616169;
+  --color-focus: #7cc4ff;
+
+  /* Type */
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  /* Fluid type scale, 320 px to 1440 px. */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.55;
+  --text-base: clamp(1rem, 0.96rem + 0.18vw, 1.125rem);
+  --text-base--line-height: 1.6;
+  --text-lg: clamp(1.125rem, 1.05rem + 0.36vw, 1.375rem);
+  --text-lg--line-height: 1.5;
+  --text-xl: clamp(1.375rem, 1.23rem + 0.71vw, 1.875rem);
+  --text-xl--line-height: 1.3;
+  --text-2xl: clamp(1.75rem, 1.46rem + 1.43vw, 2.75rem);
+  --text-2xl--line-height: 1.15;
+  --text-3xl: clamp(2.25rem, 1.75rem + 2.5vw, 4rem);
+  --text-3xl--line-height: 1.05;
+  --text-display: clamp(2.75rem, 1.86rem + 4.46vw, 5.875rem);
+  --text-display--line-height: 1;
+
+  /* Layout */
+  --container-prose: 42rem;
+  --container-content: 72rem;
+  --container-wide: 90rem;
+  --spacing-gutter: clamp(1.25rem, 0.8rem + 2.2vw, 3rem);
+  --spacing-section: clamp(4rem, 2.6rem + 7vw, 9rem);
+
+  /* Radii and shadow (minimal) */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --shadow-raised: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 12px 32px -16px rgb(0 0 0 / 0.6);
+
+  /* Motion tokens, mirrored in src/lib/motion.ts. */
+  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-in-out: cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  --ease-snap: cubic-bezier(0.19, 1, 0.22, 1);
+  --duration-micro: 200ms;
+  --duration-ui: 400ms;
+  --duration-reveal: 800ms;
+}
+
+:root {
+  color-scheme: dark;
+  /* Native scrollbar, tinted to the site: a slim grey thumb on the page colour instead of the default bright track. */
+  scrollbar-color: var(--color-border-strong) var(--color-bg);
+  /* Reserve the scrollbar's space always, so the layout never jumps when a page grows past the screen or a loader locks scrolling. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* Hero entrance: plain CSS so it starts at first paint; --i staggers the items. Reduced motion collapses it below. */
+.hero-in {
+  animation: hero-in var(--duration-reveal) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 90ms + 100ms);
+}
+
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    translate: 0 24px;
+  }
+}
+
+/* Lab loader: CSS only, so it animates from the static HTML before any JS. Transform and opacity only. */
+.lab-loader {
+  transition:
+    translate 700ms var(--ease-snap),
+    opacity 400ms var(--ease-out);
+}
+.lab-loader[data-finished] {
+  translate: 0 -100%;
+}
+.lab-loader[data-finished][data-inline] {
+  translate: none;
+  opacity: 0;
+}
+.lab-loader__corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: var(--color-border-strong);
+}
+.lab-loader__bar {
+  transition: scale 300ms var(--ease-out);
+  box-shadow: 0 0 12px var(--color-accent);
+}
+.lab-loader__scan {
+  animation: lab-loader-scan 1.6s var(--ease-in-out) infinite;
+}
+.lab-loader__dot {
+  animation: lab-loader-blink 1s steps(2, start) infinite;
+}
+@keyframes lab-loader-scan {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 400% 0;
+  }
+}
+@keyframes lab-loader-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Page transitions (src/app/template.tsx): client navigations only. Fill mode "backwards" so no transform stays on the wrapper and fixed or sticky children behave once it ends. */
+.page-in {
+  animation: page-in 600ms var(--ease-snap) backwards;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+}
+.page-sweep {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  box-shadow: 0 0 12px var(--color-accent);
+  pointer-events: none;
+  translate: -100% 0;
+  opacity: 0;
+  animation: page-sweep 700ms var(--ease-in-out);
+}
+@keyframes page-sweep {
+  from {
+    translate: -100% 0;
+    opacity: 1;
+  }
+  to {
+    translate: 100% 0;
+    opacity: 1;
+  }
+}
+
+/* Mobile menu: the sheet fades in and the links rise one after another (--i). */
+.menu-sheet[open] {
+  animation: menu-sheet 400ms var(--ease-out);
+}
+.menu-sheet[open] .menu-item {
+  animation: hero-in 600ms var(--ease-snap) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms + 120ms);
+}
+@keyframes menu-sheet {
+  from {
+    opacity: 0;
+  }
+}
+
+/* "About this example" drawer: slides in from the right over a dimmed, blurred page and slides back out on close. */
+.example-panel {
+  translate: 100% 0;
+  transition:
+    translate 500ms var(--ease-snap),
+    display 500ms allow-discrete,
+    overlay 500ms allow-discrete;
+}
+.example-panel[open] {
+  translate: 0 0;
+}
+@starting-style {
+  .example-panel[open] {
+    translate: 100% 0;
+  }
+}
+.example-panel::backdrop {
+  background: rgb(0 0 0 / 0);
+  backdrop-filter: blur(0);
+  transition:
+    background-color 400ms var(--ease-out),
+    backdrop-filter 400ms var(--ease-out),
+    display 400ms allow-discrete,
+    overlay 400ms allow-discrete;
+}
+.example-panel[open]::backdrop {
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(4px);
+}
+@starting-style {
+  .example-panel[open]::backdrop {
+    background: rgb(0 0 0 / 0);
+    backdrop-filter: blur(0);
+  }
+}
+.example-panel[open] .example-panel__body > * {
+  animation: hero-in 600ms var(--ease-snap) backwards;
+}
+.example-panel[open] .example-panel__body > :nth-child(2) {
+  animation-delay: 60ms;
+}
+.example-panel[open] .example-panel__body > :nth-child(3) {
+  animation-delay: 120ms;
+}
+.example-panel[open] .example-panel__body > :nth-child(n + 4) {
+  animation-delay: 180ms;
+}
+
+/* Header reading progress: an accent hairline on the header's bottom edge, driven by page scroll with no JS. Only shown once the header turns to glass; skipped where scroll timelines are unsupported and under reduced motion. */
+.header-progress {
+  display: none;
+}
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .header-progress {
+      display: block;
+      position: absolute;
+      inset: auto 0 -1px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--color-accent));
+      transform-origin: left;
+      scale: 0 1;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-ui) var(--ease-out);
+      animation: header-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+    [data-scrolled] > .header-progress {
+      opacity: 1;
+    }
+  }
+}
+@keyframes header-progress {
+  to {
+    scale: 1 1;
+  }
+}
+
+/* Topic pages: CSS-only entrance from the static HTML, so it plays on first load and on client navigation. --i staggers; reduced motion collapses durations via the global rule. */
+.topic-in,
+.topic-card {
+  animation: hero-in 800ms var(--ease-snap) backwards;
+  animation-delay: calc(var(--i, 0) * 90ms + 80ms);
+}
+.topic-title {
+  overflow: clip;
+  overflow-clip-margin: 0.2em;
+  padding-bottom: 0.08em;
+}
+.topic-title > span {
+  display: inline-block;
+  animation: topic-title 1000ms var(--ease-snap) 160ms backwards;
+}
+@keyframes topic-title {
+  from {
+    translate: 0 105%;
+    rotate: 3deg;
+  }
+}
+.topic-index {
+  position: absolute;
+  top: calc(var(--spacing-section, 6rem) * 0.4);
+  right: var(--spacing-gutter);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(7rem, 4rem + 16vw, 18rem);
+  line-height: 0.8;
+  letter-spacing: -0.05em;
+  color: transparent;
+  background: linear-gradient(170deg, rgb(124 196 255 / 0.22), rgb(124 196 255 / 0.02) 70%);
+  background-clip: text;
+  -webkit-text-stroke: 1.5px rgb(124 196 255 / 0.45);
+  pointer-events: none;
+  user-select: none;
+  /* Its own layer, so the clipped-text gradient is rasterised once and only the layer fades; no scale, so the outline never re-rasterises mid-animation. */
+  will-change: opacity, translate;
+  animation: topic-index 1400ms var(--ease-snap) 100ms backwards;
+}
+@keyframes topic-index {
+  from {
+    opacity: 0;
+    translate: 0 12%;
+  }
+}
+.topic-rule {
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-border) 40%, transparent);
+  transform-origin: left;
+  animation: topic-rule 1200ms var(--ease-snap) 300ms backwards;
+}
+@keyframes topic-rule {
+  from {
+    scale: 0 1;
+  }
+}
+.topic-pulse {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent);
+}
+.topic-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-accent);
+  animation: topic-pulse 2s var(--ease-out) infinite;
+}
+@keyframes topic-pulse {
+  to {
+    scale: 3.5;
+    opacity: 0;
+  }
+}
+
+/* Example cards: the poster lifts and zooms, the arrow slides in. */
+.example-card {
+  transition:
+    border-color 300ms var(--ease-out),
+    background-color 300ms var(--ease-out);
+}
+.example-card:is(:hover, :focus-visible) {
+  border-color: rgb(124 196 255 / 0.35);
+  background-color: var(--color-bg-raised);
+}
+.example-card figure > div {
+  transition:
+    translate 500ms var(--ease-snap),
+    border-color 300ms var(--ease-out),
+    box-shadow 500ms var(--ease-snap);
+}
+.example-card img {
+  transition: scale 900ms var(--ease-snap);
+}
+.example-card__arrow {
+  opacity: 0;
+  translate: -8px 0;
+  transition:
+    translate 400ms var(--ease-snap),
+    opacity 300ms var(--ease-out);
+}
+.example-card:is(:hover, :focus-visible) figure > div {
+  translate: 0 -6px;
+  border-color: var(--color-border-strong);
+  box-shadow: 0 18px 40px -20px rgb(124 196 255 / 0.35);
+}
+.example-card:is(:hover, :focus-visible) img {
+  scale: 1.05;
+}
+.example-card:is(:hover, :focus-visible) .example-card__arrow {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* Contact panel: slow concentric orbits behind the copy. */
+.contact-panel {
+  background-image: radial-gradient(circle at 85% 50%, rgb(124 196 255 / 0.08), transparent 55%);
+}
+.contact-orbit {
+  position: absolute;
+  top: 50%;
+  right: -10%;
+  width: min(70vw, 36rem);
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  pointer-events: none;
+}
+.contact-orbit > span {
+  position: absolute;
+  inset: calc(var(--n, 0) * 15%);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  animation: contact-orbit 24s linear infinite;
+}
+.contact-orbit > span::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 10px var(--color-accent);
+}
+.contact-orbit > span:nth-child(2) {
+  --n: 1;
+  animation-duration: 18s;
+  animation-direction: reverse;
+}
+.contact-orbit > span:nth-child(3) {
+  --n: 2;
+  animation-duration: 12s;
+}
+@keyframes contact-orbit {
+  to {
+    rotate: 1turn;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topic-pulse::after,
+  .contact-orbit > span {
+    animation: none;
+  }
+}
+
+/* About portrait: framed 4:5 card with a corner glow; the monogram stands in until a photo exists. */
+.about-portrait {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+  box-shadow: 0 30px 60px -30px rgb(124 196 255 / 0.3);
+}
+.about-portrait::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    160deg,
+    rgb(124 196 255 / 0.12),
+    transparent 40%,
+    transparent 70%,
+    rgb(11 11 12 / 0.6)
+  );
+  pointer-events: none;
+}
+.about-monogram {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  background:
+    radial-gradient(circle at 30% 20%, rgb(124 196 255 / 0.18), transparent 60%),
+    repeating-linear-gradient(0deg, transparent 0 23px, var(--color-border) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, var(--color-border) 23px 24px);
+}
+.about-monogram > span {
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 10vw, 7rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: var(--color-fg);
+  text-shadow: 0 0 40px rgb(124 196 255 / 0.5);
+}
+
+/* Studio panel: warm dawn glow ("Zorya" is the dawn star) on top of the raised surface. */
+.studio-panel {
+  background-image:
+    radial-gradient(circle at 0% 0%, rgb(255 170 110 / 0.1), transparent 45%),
+    radial-gradient(circle at 100% 100%, rgb(124 196 255 / 0.08), transparent 50%);
+}
+.studio-app-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border-strong);
+  background: linear-gradient(140deg, rgb(255 170 110 / 0.25), rgb(124 196 255 / 0.2));
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-fg);
+  transition: scale 400ms var(--ease-snap);
+}
+.group:hover .studio-app-icon {
+  scale: 1.08;
+}
+
+/* MapLibre's "use Ctrl + scroll" hint (both Lab maps): a small glass pill near the top instead of a dimmed full-map overlay with centred text. */
+.maplibregl-map .maplibregl-cooperative-gesture-screen {
+  inset: 4.5rem auto auto 50%;
+  translate: -50% 0;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  padding: 0.55rem 1rem;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+  background: rgb(10 12 18 / 0.72);
+  backdrop-filter: blur(10px);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  text-align: center;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+}
